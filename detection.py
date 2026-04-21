@@ -7,21 +7,13 @@ import time
 # 🔧 LOAD TRAINED MODEL
 # ==============================
 
-# Use correct model path - change from fire_smoke_best to train
-model_path = "runs/detect/train/weights/best.pt"
+model_path = "runs/detect/train-2/weights/best.pt"
 
 if not os.path.exists(model_path):
     print(f"❌ Model not found at {model_path}")
-    print("Available model files:")
-    if os.path.exists("runs/detect/train/weights/"):
-        print(f"  - {model_path}")
-    else:
-        print("  No trained models found in runs/detect/")
     exit()
 
 model = YOLO(model_path)
-
-# Get class names dynamically
 class_names = model.names
 
 # ==============================
@@ -36,9 +28,13 @@ os.makedirs(ALERT_PATH, exist_ok=True)
 # ==============================
 
 CONF_THRESHOLD = 0.5
-SAVE_INTERVAL = 5  # seconds
+COOLDOWN = 10  # seconds (optional safety)
 
 last_saved_time = 0
+
+# 👉 STATE TRACKING (IMPORTANT)
+prev_fire_state = False
+prev_smoke_state = False
 
 # ==============================
 # 📷 OPEN CAMERA
@@ -111,25 +107,42 @@ while True:
     annotated_frame = results[0].plot()
 
     cv2.putText(
-        annotated_frame, status, (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 3
+        annotated_frame,
+        status,
+        (20, 50),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        1,
+        color,
+        3,
     )
 
     # ==============================
-    # 💾 SAVE ALERT IMAGE
+    # 💾 EVENT-BASED ALERT LOGIC
     # ==============================
 
     current_time = time.time()
 
-    if (fire_detected or smoke_detected) and (
-        current_time - last_saved_time > SAVE_INTERVAL
+    # 🔥 Detect NEW event (rising edge)
+    new_fire_event = fire_detected and not prev_fire_state
+    new_smoke_event = smoke_detected and not prev_smoke_state
+
+    if (new_fire_event or new_smoke_event) and (
+        current_time - last_saved_time > COOLDOWN
     ):
         filename = f"{ALERT_PATH}/alert_{int(current_time)}.jpg"
         cv2.imwrite(filename, annotated_frame)
 
-        print(f"🚨 ALERT: {status}")
+        print(f"🚨 NEW ALERT: {status}")
         print(f"📸 Saved: {filename}")
 
         last_saved_time = current_time
+
+    # ==============================
+    # 🔄 UPDATE STATE
+    # ==============================
+
+    prev_fire_state = fire_detected
+    prev_smoke_state = smoke_detected
 
     # ==============================
     # 🖥️ DISPLAY
@@ -137,7 +150,6 @@ while True:
 
     cv2.imshow("🔥 Fire Detection System", annotated_frame)
 
-    # Exit on ESC
     if cv2.waitKey(1) & 0xFF == 27:
         break
 
