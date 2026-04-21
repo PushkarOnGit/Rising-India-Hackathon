@@ -3,72 +3,56 @@ from ultralytics import YOLO
 import os
 import time
 
-# ==============================
-# 🔧 LOAD TRAINED MODEL
-# ==============================
-
-model_path = "runs/detect/train-2/weights/best.pt"
+# loading model
+script_dir = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.join(script_dir, "runs/detect/train-2/weights/best.pt")
 
 if not os.path.exists(model_path):
-    print(f"❌ Model not found at {model_path}")
+    print(f"Model not found at {model_path}")
     exit()
 
 model = YOLO(model_path)
 class_names = model.names
 
-# ==============================
-# 📁 CREATE ALERT FOLDER
-# ==============================
+# alert folder
 
 ALERT_PATH = "alerts/images"
 os.makedirs(ALERT_PATH, exist_ok=True)
 
-# ==============================
-# ⚙️ PARAMETERS
-# ==============================
+# parameters
 
 CONF_THRESHOLD = 0.5
 COOLDOWN = 10  # seconds (optional safety)
 
 last_saved_time = 0
 
-# 👉 STATE TRACKING (IMPORTANT)
+# state tracking
 prev_fire_state = False
 prev_smoke_state = False
 
-# ==============================
-# 📷 OPEN CAMERA
-# ==============================
+# open camera
 
 cap = cv2.VideoCapture(0)
 
 if not cap.isOpened():
-    print("❌ Cannot open camera")
+    print("Cannot open camera")
     exit()
 
-print("🔥 Fire Detection Started (Press ESC to exit)")
+print("Fire Detection Started (Press ESC to exit)")
 
-# ==============================
-# 🚀 MAIN LOOP
-# ==============================
-
+# loop
 while True:
     ret, frame = cap.read()
     if not ret:
         break
 
-    # ==============================
-    # 🧠 RUN DETECTION
-    # ==============================
-
+    # detection running
     results = model(frame, conf=CONF_THRESHOLD)
 
     fire_detected = False
     smoke_detected = False
 
-    # ==============================
-    # 🔍 PROCESS RESULTS
-    # ==============================
+    # processes results
 
     for r in results:
         for box in r.boxes:
@@ -80,16 +64,12 @@ while True:
             elif label == "smoke":
                 smoke_detected = True
 
-    # ==============================
-    # 🎯 STATUS LOGIC
-    # ==============================
-
     if fire_detected and smoke_detected:
-        status = "🔥 FIRE + SMOKE"
+        status = "FIRE + SMOKE"
         color = (0, 0, 255)
 
     elif fire_detected:
-        status = "🔥 FIRE"
+        status = "FIRE"
         color = (0, 0, 255)
 
     elif smoke_detected:
@@ -97,12 +77,10 @@ while True:
         color = (0, 255, 255)
 
     else:
-        status = "✅ NORMAL"
+        status = "NORMAL"
         color = (0, 255, 0)
 
-    # ==============================
-    # 🖼️ DRAW RESULTS
-    # ==============================
+    # drawing results
 
     annotated_frame = results[0].plot()
 
@@ -116,13 +94,11 @@ while True:
         3,
     )
 
-    # ==============================
-    # 💾 EVENT-BASED ALERT LOGIC
-    # ==============================
+    # Alert Logic
 
     current_time = time.time()
 
-    # 🔥 Detect NEW event (rising edge)
+    # Detect NEW event (rising edge)
     new_fire_event = fire_detected and not prev_fire_state
     new_smoke_event = smoke_detected and not prev_smoke_state
 
@@ -137,25 +113,19 @@ while True:
 
         last_saved_time = current_time
 
-    # ==============================
-    # 🔄 UPDATE STATE
-    # ==============================
+    # updating State
 
     prev_fire_state = fire_detected
     prev_smoke_state = smoke_detected
 
-    # ==============================
-    # 🖥️ DISPLAY
-    # ==============================
+    # display result
 
-    cv2.imshow("🔥 Fire Detection System", annotated_frame)
+    cv2.imshow("Fire Detection System", annotated_frame)
 
     if cv2.waitKey(1) & 0xFF == 27:
         break
 
-# ==============================
-# 🧹 CLEANUP
-# ==============================
+# memory cleanup
 
 cap.release()
 cv2.destroyAllWindows()

@@ -1,0 +1,40 @@
+{
+    "test_loss": 0.07746356725692749,
+    "test_accuracy": 0.9933333396911621,
+    "f1_scores": {
+        "safe": 0.9898477157360406,
+        "alert": 0.9899749373433584,
+        "hazardous": 1.0,
+        "macro": 0.993274217693133,
+        "weighted": 0.9933332273153272
+    },
+    "confusion_matrix": [
+        [
+            390,
+            5,
+            0
+        ],
+        [
+            3,
+            395,
+            0
+        ],
+        [
+            0,
+            0,
+            407
+        ]
+    ],
+    "training_samples": 4800,
+    "test_samples": 1200,
+    "class_distribution_train": {
+        "safe": 1561,
+        "alert": 1611,
+        "hazardous": 1628
+    },
+    "class_distribution_test": {
+        "safe": 395,
+        "alert": 398,
+        "hazardous": 407
+    }
+}
